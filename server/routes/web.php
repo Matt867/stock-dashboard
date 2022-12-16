@@ -152,8 +152,30 @@ Route::get('/gettopstocks', function (Request $request) {
     }
 });
 
+// Given a ticker and a quantity, buy stocks and update a user's portfolio
+Route::post('/buy', function (Request $request) {
+
+    // Check session
+    if ($request->session()->missing("id")) {
+        abort(403);
+    };
+
+    $currUserId = $request->session("id");
+
+    // todo add order to buys table
+
+});
+
+Route::post('/sell', function (Request $request) {
+
+    // Check session
+    if ($request->session()->missing("id")) {
+        abort(403);
+    };
 
 
+
+});
 
 Route::get('/', function () {
     return csrf_token();
