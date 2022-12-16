@@ -26,8 +26,42 @@ Route::get('/getPrice/{ticker}', function ($ticker) {
 });
 
 Route::post('/signup', function (Request $request) {
-    return json_encode($request->all());
+
+    try {
+        $data = $request->json()->all();
+
+        if (!isset($data['password']) || !isset($data['username'])) {
+            throw new Exception("Password or username not sent");
+        }
+        
+        $username = $data['username'];
+        $password = $data['password'];
+        
+        DB::insert('INSERT INTO users (username, pass) VALUES (?, ?)', $username, $password);
+
+        return "Created user";
+    } catch (Exception $e) {
+        abort(400, $e->getMessage());
+    }
 });
+
+Route::post('/login', function (Request $request) {
+    try {
+
+        $data = $request->json()->all();
+
+        if (!isset($data['username']) || !isset($data['password'])) {
+            throw new Exception("Password or username not sent");
+        }
+
+        $results = DB::select('SELECT pass FROM users WHERE username=?', $data['username']);
+
+        return var_dump($results);
+
+    } catch (Exception $e) {
+        abort(400, $e->getMessage());
+    }
+})
 
 Route::get('/', function () {
     $results = DB::select('select * from users where id = ?', array(1));
