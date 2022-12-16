@@ -28,3 +28,8 @@ Route::get('/getPrice/{ticker}', function ($ticker) {
 Route::post('/signup', function (Request $request) {
     return json_encode($request->all());
 });
+
+Route::get('/', function () {
+    $results = DB::select('select * from users where id = ?', array(1));
+    return $results;
+});
