@@ -97,15 +97,20 @@ Route::get('/gettopstocks', function (Request $request) {
         'TRGP',
         );
 
+        // Missing count in request body
         if (!isset($data["count"])) {
             throw new Exception("Count not sent.");
         }
 
+        // Over 25 not currently supported
         if (intval($data["count"] > 25)) {
             throw new Exception("Over top 25 is currently not supported.");
         }
 
+
         $responseObject = array();
+
+        // Get prices for top N stocks from API and append result to response array
         for ($i = 0; $i < intval($data["count"]); $i++) {
             $response = Http::acceptJson()
             ->withHeaders(['X-Finnhub-Token' => API_KEY])
