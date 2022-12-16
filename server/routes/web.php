@@ -173,7 +173,7 @@ Route::post('/sell', function (Request $request) {
         abort(403);
     };
 
-
+    // todo add order to sells table
 
 });
 
