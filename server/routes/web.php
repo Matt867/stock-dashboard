@@ -86,3 +86,76 @@ Route::post('/login', function (Request $request) {
         abort(400, $e->getMessage());
     }
 });
+
+// Get top N stocks
+Route::get('/gettopstocks', function (Request $request) {
+    try {
+        $data = $request->json()->all();
+
+        // Currently hardcodes tickers for top 25 best performing stocks, price to be filled in by API later
+        $top25 = array(
+        'OXY',
+        'EQT',
+        'HES',
+        'MPC',
+        'MRO',
+        'XOM',
+        'VLO',
+        'ENPH',
+        'APA',
+        'SLB',
+        'COP',
+        'HAL',
+        'EOG',
+        'CVX',
+        'CAH',
+        'DVN',
+        'MCK',
+        'CF',
+        'PSX',
+        'CTRA',
+        'ADM',
+        'VRTX',
+        'MRK',
+        'CI',
+        'TRGP',
+        );
+
+        // Missing count in request body
+        if (!isset($data["count"])) {
+            throw new Exception("Count not sent.");
+        }
+
+        // Over 25 not currently supported
+        if (intval($data["count"] > 25)) {
+            throw new Exception("Over top 25 is currently not supported.");
+        }
+
+
+        $responseObject = array();
+
+        // Get prices for top N stocks from API and append result to response array
+        for ($i = 0; $i < intval($data["count"]); $i++) {
+            $response = Http::acceptJson()
+            ->withHeaders(['X-Finnhub-Token' => API_KEY])
+            ->get('http://finnhub.io/api/v1/quote?symbol='.$top25[$i]);
+
+            $json = $response->json();
+
+            $responseObject[] = array($top25[$i] => $json["c"]);
+        }
+
+        return $responseObject;
+        
+    } catch (Exception $e) {
+        abort(400, $e->getMessage());
+    }
+});
+
+
+
+
+Route::get('/', function () {
+    return csrf_token();
+});
+
