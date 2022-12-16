@@ -14,5 +14,6 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
+    $test = DB::select('select * from users where active = ?', [1]);
     return view('welcome');
 });
