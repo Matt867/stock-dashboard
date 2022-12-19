@@ -2,6 +2,7 @@ import * as React from 'react';
 import SmallStockCard from '../../components/SmallStockCard'
 import HotStocksSidebar from '../../components/HotStocksSidebar'
 import TopBar from '../../components/TopBar'
+import PortFolioBalance from '../../components/PortfolioBalance';
 import { useEffect, useState } from 'react';
 import {nanoid} from 'nanoid'
 
@@ -58,6 +59,7 @@ export default function Homepage() {
     return (
         <>
             <TopBar></TopBar>
+            <PortFolioBalance value={432564}/>
             <HotStocksSidebar stocks={hotStocks}/>
         </>
     )
