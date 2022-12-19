@@ -52,7 +52,7 @@ Route::get('/getPrice/{ticker}', function ($ticker) {
         ->withHeaders(['X-Finnhub-Token' => API_KEY])
         ->get('http://finnhub.io/api/v1/quote?symbol='.$ticker);
     $json = $response->json();
-    return json_encode(['price' => $json['c'], 'percentchange' => $json['dp']]);
+    return ['price' => $json['c'], 'percentchange' => $json['dp']];
     // todo check docs, return the whole object and rename keys
 });
 
@@ -309,18 +309,32 @@ Route::get('/portfolio/value', function (Request $request) {
     return $value;
 });
 
+// Get order history for current session user
 Route::get('/orders', function () {
     //todo
 });
-// todo endpoint for order history for current session user
 
 Route::get('/search/{ticker}', function ($ticker, Request $request) {
+
+    if (!validTicker($ticker)) {
+        abort(400);
+    }
+
+    $response = Http::acceptJson()
+        ->withHeaders(['X-Finnhub-Token' => API_KEY])
+        ->get('http://finnhub.io/api/v1/quote?symbol='.$ticker);    
+    $json = $response->json();
     
-});
+    // Add company name to response, then send response
+    $response2 = Http::acceptJson()
+        ->withHeaders(['X-Finnhub-Token' => API_KEY])
+        ->get('http://finnhub.io/api/v1/search?q='.$ticker);    
+    $json2 = $response2->json();
+    $company_name = $json2["result"][0]["description"];
+    
+    $json["companyName"] = $company_name;
+    return ['price' => $json['c'], 'change' => $json['d'], 'percentchange' => $json['dp'], 'name' => $json['companyName'], 'high' => $json['h'], 'low' => $json['l'], 'open' => $json['o'], 'previousclose' => $json['pc']];
 
-// if time, todo endpoint /search/:ticker 
 
-Route::get('/', function () {
-   // homepage?
 });
 
