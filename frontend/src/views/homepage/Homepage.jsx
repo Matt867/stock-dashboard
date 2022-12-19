@@ -1,7 +1,9 @@
 import * as React from 'react';
 import SmallStockCard from '../../components/SmallStockCard'
 import HotStocksSidebar from '../../components/HotStocksSidebar'
+import TopBar from '../../components/TopBar'
 import { useEffect, useState } from 'react';
+import {nanoid} from 'nanoid'
 
 const stocks = [
     {
@@ -40,12 +42,11 @@ export default function Homepage() {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    count: 10
+                    count: 5
                 })
             })
-
             const data = await response.json();
-            console.log("All good")
+            console.log(data);
             setHotStocks(data);
         }
         
@@ -56,6 +57,7 @@ export default function Homepage() {
 
     return (
         <>
+            <TopBar></TopBar>
             <HotStocksSidebar stocks={hotStocks}/>
         </>
     )

@@ -14,7 +14,9 @@ import InteractiveList from './views/marketView/MarketView';
 import BarChart from './components/BarChart';
 import AreaChart from './components/AreaCart';
 import Homepage from './views/homepage/Homepage.jsx';
-
+import SignUp from './views/signup/signup';
+import LogIn from './views/login/login';
+import { Routes, Route } from 'react-router-dom';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -25,11 +27,11 @@ function App() {
     <>
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
-      <main>
-        {/* <InteractiveList /> */}
-        <Homepage/>
-        {/* <BarChart /> */}
-      </main>
+        <Routes>
+          <Route path="/" element={<Homepage/>}/>
+          <Route path="/signup" element={<SignUp/>}/>
+          <Route path="/login" element={<LogIn/>}/>
+        </Routes>
     </ThemeProvider>
     </>
   )
