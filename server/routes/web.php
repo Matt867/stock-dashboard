@@ -142,7 +142,7 @@ Route::get('/gettopstocks', function (Request $request) {
 
             $json = $response->json();
 
-            $responseObject[] = array($top25[$i] => $json["c"]);
+            $responseObject[] = array('ticker' => $top25[$i], 'price' => $json['c'], 'percentchange' => $json['dp']);
         }
 
         return $responseObject;
