@@ -17,12 +17,42 @@ use Illuminate\Support\Facades\Http;
 
 const API_KEY = "cedgceiad3i8tooa17b0cedgceiad3i8tooa17bg";
 
+// Check if a ticker is valid
+function validTicker($ticker) {
+    $response = Http::acceptJson()
+    ->withHeaders(['X-Finnhub-Token' => API_KEY])
+    ->get('http://finnhub.io/api/v1/quote?symbol='.$ticker);
+
+    $json = $response->json();
+
+    if ($json['c'] == null) {
+        return false;
+    }
+    return true;
+}
+
+// Get the price of a ticker
+function getPrice($ticker) {
+
+    if (!validTicker($ticker)) {
+        return false;
+    }
+
+    $response = Http::acceptJson()
+    ->withHeaders(['X-Finnhub-Token' => API_KEY])
+    ->get('http://finnhub.io/api/v1/quote?symbol='.$ticker);
+
+    $json = $response->json();
+
+    return $json['c'];
+}
+
 Route::get('/getPrice/{ticker}', function ($ticker) {
     $response = Http::acceptJson()
         ->withHeaders(['X-Finnhub-Token' => API_KEY])
         ->get('http://finnhub.io/api/v1/quote?symbol='.$ticker);
     $json = $response->json();
-    return json_encode(['price' => $json['c'], 'percentchange' => $json['dp']]); // todo check that its dp
+    return json_encode(['price' => $json['c'], 'percentchange' => $json['dp']]);
     // todo check docs, return the whole object and rename keys
 });
 
@@ -95,11 +125,11 @@ Route::post('/gettopstocks', function (Request $request) {
 
         // Currently hardcodes tickers for top 25 best performing stocks, price to be filled in by API later
         $top25 = array(
-        'OXY',
-        'EQT',
-        'HES',
-        'MPC',
-        'MRO',
+        'TSLA',
+        'AAPL',
+        'MSFT',
+        'META',
+        'GOOGL',
         'XOM',
         'VLO',
         'ENPH',
@@ -165,11 +195,25 @@ Route::post('/buy', function (Request $request) {
 
     $curr_user_id = $request->session()->get("id");
 
+    // Validate ticker
+    if (!validTicker($request_data["ticker"])) {
+        abort(404, "Invalid ticker");
+    }
+
     // Add order to buys table
     DB::insert('INSERT INTO buyorders (ordertime, quantity, ticker, userid) VALUES (?, ?, ?, ?)', array(date('Y-m-d H:i:s'), $request_data["quantity"], $request_data["ticker"] ,$curr_user_id));
 
-    // Add stocks and quantity to current user's portfolio
-    DB::insert('INSERT INTO portfolios (updated, quantity, ticker, userid) VALUES (?, ?, ?, ?)', array(date('Y-m-d H:i:s'), $request_data["quantity"], $request_data["ticker"], $curr_user_id));
+    // Add stocks and quantity to current user's portfolio. Row may already exist, in that case just update quantity
+    $queryresult = DB::select('SELECT quantity FROM portfolios WHERE userid=? AND ticker=?', array($curr_user_id, $request_data["ticker"]));
+
+    if (count($queryresult) < 1) {
+        DB::insert('INSERT INTO portfolios (updated, quantity, ticker, userid) VALUES (?, ?, ?, ?)', array(date('Y-m-d H:i:s'), $request_data["quantity"], $request_data["ticker"], $curr_user_id));
+    }
+
+    else {
+        $curr_quantity = (array)$queryresult[0];
+        DB::update('UPDATE portfolios SET quantity=? WHERE userid=? AND ticker=?', array($curr_quantity["quantity"] + $request_data["quantity"], $curr_user_id, $request_data["ticker"]));
+    }
 
 });
 
@@ -184,23 +228,36 @@ Route::post('/sell', function (Request $request) {
 
     $curr_user_id = $request->session()->get("id");
 
+    // Validate ticker
+    if (!validTicker($request_data["ticker"])) {
+        abort(404, "Invalid ticker");
+    }
+
     // Check that the user has enough stocks to sell (that the sell is valid)
-    $queryresult = DB::select('SELECT quantity FROM portfolios WHERE userid=?, ticker=?');
+    $queryresult = DB::select('SELECT quantity FROM portfolios WHERE userid=? AND ticker=?', array($curr_user_id, $request_data["ticker"]));
     $owned_quantity = (array)$queryresult[0];
-    if ($owned_quantity > $request_data["quantity"]) {
-        echo "something";
+    if ($owned_quantity["quantity"] < $request_data["quantity"]) {
+        abort(400);
     }
 
     // Add order to sells table
     DB::insert('INSERT INTO sellorders (ordertime, quantity, ticker, userid) VALUES (?, ?, ?, ?)', array(date('Y-m-d H:i:s'), $request_data["quantity"], $request_data["ticker"] ,$curr_user_id));
 
+    // Update user's portfolio with new quantity. Delete the entire row if a user is selling all their shares.
+    if ($owned_quantity["quantity"] == $request_data["quantity"]) {
+        DB::delete('DELETE FROM portfolios WHERE userid=? AND ticker=?', array($curr_user_id, $request_data["ticker"]));
+    }
+    else {
+        $new_quantity = $owned_quantity["quantity"] - $request_data["quantity"];
+        DB::update('UPDATE portfolios SET quantity=? WHERE userid=? AND ticker=?', array($new_quantity, $curr_user_id, $request_data["ticker"]));
+    }
 });
 
 // Get current username from current session
 Route::get('/user', function (Request $request) {
 
     if ($request->session()->missing("id")) {
-        abort(403);
+        abort(403, "Missing user");
     }
     $curr_user_id = $request->session()->get("id");
 
@@ -209,18 +266,61 @@ Route::get('/user', function (Request $request) {
     // Get username
     $username = (array)$queryresult[0];
 
-    return $username;
+    // Return username (as string)
+    return array("username" => $username["username"]);
 
 });
 
-// todo portfolio endpoint /portfolio response live portfolio value, find current user using current session
-// todo function that, given a user id, updates portfolio using buy and sell tables
+Route::get('/portfolio', function (Request $request) {
 
+    // Get current user
+    if ($request->session()->missing("id")) {
+        abort(403);
+    }
+
+    $curr_user_id = $request->session()->get("id");
+    
+    // Get and return their portfolio
+    $queryresult = DB::select('SELECT ticker, quantity FROM portfolios WHERE userid=?', array($curr_user_id));
+    return $queryresult;
+});
+
+Route::get('/portfolio/value', function (Request $request) {
+
+    // Get current user
+    if ($request->session()->missing("id")) {
+        abort(403);
+    }
+
+    $curr_user_id = $request->session()->get("id");
+    
+    // Sum their portfolio, calculate and return the value
+    $queryresult = DB::select('SELECT ticker, quantity FROM portfolios WHERE userid=?', array($curr_user_id));
+    
+    $value = 0;
+
+    for($i=0; $i < count($queryresult); $i++) {
+        $stock = (array)$queryresult[$i];
+        $current_price_of_stock = getPrice($stock["ticker"]);
+        $total_value_held = $current_price_of_stock * $stock["quantity"];
+        $value += $total_value_held;
+    }
+
+    return $value;
+});
+
+Route::get('/orders', function () {
+    //todo
+});
 // todo endpoint for order history for current session user
+
+Route::get('/search/{ticker}', function ($ticker, Request $request) {
+    
+});
 
 // if time, todo endpoint /search/:ticker 
 
 Route::get('/', function () {
-    return csrf_token();
+   // homepage?
 });
 
