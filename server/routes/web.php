@@ -22,7 +22,8 @@ Route::get('/getPrice/{ticker}', function ($ticker) {
         ->withHeaders(['X-Finnhub-Token' => API_KEY])
         ->get('http://finnhub.io/api/v1/quote?symbol='.$ticker);
     $json = $response->json();
-    return json_encode(['price' => $json['c']]);
+    return json_encode(['price' => $json['c'], 'percentchange' => $json['dp']]); // todo check that its dp
+    // todo check docs, return the whole object and rename keys
 });
 
 Route::post('/signup', function (Request $request) {
@@ -45,7 +46,7 @@ Route::post('/signup', function (Request $request) {
 
         // return success!
         return "Created user";
-    } catch (Exception $e) {s
+    } catch (Exception $e) {
         abort(400, $e->getMessage());
     }
 });
@@ -143,6 +144,7 @@ Route::get('/gettopstocks', function (Request $request) {
             $json = $response->json();
 
             $responseObject[] = array('ticker' => $top25[$i], 'price' => $json['c'], 'percentchange' => $json['dp']);
+
         }
 
         return $responseObject;
@@ -160,12 +162,13 @@ Route::post('/buy', function (Request $request) {
         abort(403);
     };
 
-    $currUserId = $request->session("id");
+    $currUserId = $request->session()->get("id");
 
-    // todo add order to buys table
+    // todo add order to buys table and add to user portfolio
 
 });
 
+// Given a ticker and a quantity, sell stocks and update a user's portfolio
 Route::post('/sell', function (Request $request) {
 
     // Check session
@@ -173,9 +176,39 @@ Route::post('/sell', function (Request $request) {
         abort(403);
     };
 
-    // todo add order to sells table
+    $curr_user_id = $request->session()->get("id");
+
+    // todo add order to sells table and remove from user portfolio
+    
+    
+});
+
+// Get current username from current session
+Route::get('/user', function (Request $request) {
+
+    if ($request->session()->missing("id")) {
+        abort(403);
+    }
+    $curr_user_id = $request->session()->get("id");
+
+    $queryresult = DB::select('SELECT username FROM users WHERE id=?', array($curr_user_id));
+
+    // Get username
+    $username = (array)$queryresult[0];
+
+    return $username;
 
 });
+
+// todo one more endpoint /user/ return username, find current user using current session
+
+// todo buys and sells
+
+// todo portfolio endpoint /portfolio response live portfolio value, find current user using current session
+
+// todo endpoint for order history for current session user
+
+// if time, todo endpoint /search/:ticker 
 
 Route::get('/', function () {
     return csrf_token();
