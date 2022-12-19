@@ -89,7 +89,7 @@ Route::post('/login', function (Request $request) {
 });
 
 // Get top N stocks
-Route::get('/gettopstocks', function (Request $request) {
+Route::post('/gettopstocks', function (Request $request) {
     try {
         $data = $request->json()->all();
 
@@ -156,31 +156,44 @@ Route::get('/gettopstocks', function (Request $request) {
 
 // Given a ticker and a quantity, buy stocks and update a user's portfolio
 Route::post('/buy', function (Request $request) {
+    $request_data = $request->json()->all();
 
-    // Check session
-    if ($request->session()->missing("id")) {
-        abort(403);
-    };
-
-    $currUserId = $request->session()->get("id");
-
-    // todo add order to buys table and add to user portfolio
-
-});
-
-// Given a ticker and a quantity, sell stocks and update a user's portfolio
-Route::post('/sell', function (Request $request) {
-
-    // Check session
+    // Check session, get current user ID
     if ($request->session()->missing("id")) {
         abort(403);
     };
 
     $curr_user_id = $request->session()->get("id");
 
-    // todo add order to sells table and remove from user portfolio
-    
-    
+    // Add order to buys table
+    DB::insert('INSERT INTO buyorders (ordertime, quantity, ticker, userid) VALUES (?, ?, ?, ?)', array(date('Y-m-d H:i:s'), $request_data["quantity"], $request_data["ticker"] ,$curr_user_id));
+
+    // Add stocks and quantity to current user's portfolio
+    DB::insert('INSERT INTO portfolios (updated, quantity, ticker, userid) VALUES (?, ?, ?, ?)', array(date('Y-m-d H:i:s'), $request_data["quantity"], $request_data["ticker"], $curr_user_id));
+
+});
+
+// Given a ticker and a quantity, sell stocks and update a user's portfolio
+Route::post('/sell', function (Request $request) {
+    $request_data = $request->json()->all();
+
+    // Check session, get current user ID
+    if ($request->session()->missing("id")) {
+        abort(403);
+    };
+
+    $curr_user_id = $request->session()->get("id");
+
+    // Check that the user has enough stocks to sell (that the sell is valid)
+    $queryresult = DB::select('SELECT quantity FROM portfolios WHERE userid=?, ticker=?');
+    $owned_quantity = (array)$queryresult[0];
+    if ($owned_quantity > $request_data["quantity"]) {
+        echo "something";
+    }
+
+    // Add order to sells table
+    DB::insert('INSERT INTO sellorders (ordertime, quantity, ticker, userid) VALUES (?, ?, ?, ?)', array(date('Y-m-d H:i:s'), $request_data["quantity"], $request_data["ticker"] ,$curr_user_id));
+
 });
 
 // Get current username from current session
@@ -200,11 +213,8 @@ Route::get('/user', function (Request $request) {
 
 });
 
-// todo one more endpoint /user/ return username, find current user using current session
-
-// todo buys and sells
-
 // todo portfolio endpoint /portfolio response live portfolio value, find current user using current session
+// todo function that, given a user id, updates portfolio using buy and sell tables
 
 // todo endpoint for order history for current session user
 
