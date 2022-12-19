@@ -13,6 +13,7 @@ import { themeOptions } from './utils/themeOption';
 import InteractiveList from './views/marketView/MarketView';
 import BarChart from './components/BarChart';
 import AreaChart from './components/AreaCart';
+import Homepage from './views/homepage/Homepage.jsx';
 
 
 function App() {
@@ -25,9 +26,9 @@ function App() {
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       <main>
-        <InteractiveList />
-
-        <BarChart />
+        {/* <InteractiveList /> */}
+        <Homepage/>
+        {/* <BarChart /> */}
       </main>
     </ThemeProvider>
     </>
