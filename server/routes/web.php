@@ -309,12 +309,28 @@ Route::get('/portfolio/value', function (Request $request) {
     return $value;
 });
 
-// Get order history for current session user
-Route::get('/orders', function () {
-    //todo
+// Get order history for current session user, most to least recent, buys and sells together
+Route::get('/orders', function (Request $request) {
+
+    // Get current user
+    if ($request->session()->missing("id")) {
+        abort(403);
+    }
+
+    $curr_user_id = $request->session()->get("id");
+
+    // Query DB, get both buys and sells chronologically
+    $results = array();
+
+    $queryresult = DB::select('', array($curr_user_id));
+
+    // todo figure out queries and joins to get desired result
+
 });
 
 Route::get('/search/{ticker}', function ($ticker, Request $request) {
+
+    $ticker = strtoupper($ticker);
 
     if (!validTicker($ticker)) {
         abort(400);
@@ -334,7 +350,6 @@ Route::get('/search/{ticker}', function ($ticker, Request $request) {
     
     $json["companyName"] = $company_name;
     return ['price' => $json['c'], 'change' => $json['d'], 'percentchange' => $json['dp'], 'name' => $json['companyName'], 'high' => $json['h'], 'low' => $json['l'], 'open' => $json['o'], 'previousclose' => $json['pc']];
-
 
 });
 
