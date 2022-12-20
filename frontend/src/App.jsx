@@ -19,7 +19,10 @@ import LogIn from './views/login/login';
 import { Routes, Route } from 'react-router-dom';
 
 function App() {
+
+  const [token, setToken] = useState("")
   const [count, setCount] = useState(0)
+  const [loggedIn, setLoggedIn] = useState(false)
 
   const darkTheme = createTheme(themeOptions);
 
@@ -28,9 +31,9 @@ function App() {
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
         <Routes>
-          <Route path="/" element={<Homepage/>}/>
-          <Route path="/signup" element={<SignUp/>}/>
-          <Route path="/login" element={<LogIn/>}/>
+          <Route path="/" element={<Homepage token={token} setToken={setToken} loggedIn={loggedIn} setLoggedIn={setLoggedIn}/>}/>
+          <Route path="/signup" element={<SignUp token={token} setToken={setToken} loggedIn={loggedIn} setLoggedIn={setLoggedIn}/>}/>
+          <Route path="/login" element={<LogIn token={token} setToken={setToken} loggedIn={loggedIn} setLoggedIn={setLoggedIn}/>}/>
         </Routes>
     </ThemeProvider>
     </>

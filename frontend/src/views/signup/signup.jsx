@@ -16,7 +16,7 @@ import { Link } from "react-router-dom"
 
 const theme = createTheme();
 
-export default function SignUp() {
+export default function SignUp({token, setToken, loggedIn, setLoggedIn}) {
 
   const [userName, setUsername] = useState("")
   const [passWord, setPassword] = useState("")
