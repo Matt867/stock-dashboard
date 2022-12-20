@@ -144,7 +144,7 @@ Route::post('/login', function (Request $request) {
 });
 
 // Get top N stocks. Note: This route is kind of slow, I think it could use some caching. Maybe create a cache, either through the DB or in an array, check if the entries are
-// more than 5(?) minutes old and if they are too old, only then make external calls to the API and then update the cache with new values and timestamp. This way, we only call the API every 5 minutes at worst.
+// more than 5(?) minutes old and if they are too old, only then make external calls to the API and then update the cache with new API response and timestamp. This way, we only call the API every 5 minutes in the worst case.
 // ^ Would probably fix the erratic behaviour on the homepage of the frontend.
 Route::post('/gettopstocks', function (Request $request) {
     $data = $request->json()->all();
