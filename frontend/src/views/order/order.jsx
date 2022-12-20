@@ -7,24 +7,46 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
 import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { useState } from 'react';
-import { Link } from "react-router-dom"
+import { Link } from "react-router-dom";
+import BuySellSwitch from '../../components/buysellswitch';
 
 const theme = createTheme();
 
 export default function Order({token, setToken, loggedIn, setLoggedIn}) {
 
-  const [userName, setUsername] = useState("")
-  const [passWord, setPassword] = useState("")
+  const [ticker, setTicker] = useState("")
+  const [quantity, setQuantity] = useState("")
+  const [checked, setChecked] = useState(false)
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    console.log("ORDER MADE")
+    console.log(event)
+    let url = "";
+    checked ? url = "http://88.198.184.61:2345/buy" : url = "http://88.198.184.61:2345/sell";
+    
+    const response = await fetch(url, {
+          method: "POST",
+              headers: {
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                  ticker: ticker,
+                  quantity: quantity,
+                  token: token,
+              })
+      })
+
   }
+
+  React.useEffect(() => {
+    console.log("change detected", checked)
+  }, [checked])
 
   return (
     <ThemeProvider theme={theme}>
@@ -39,33 +61,36 @@ export default function Order({token, setToken, loggedIn, setLoggedIn}) {
           }}
         >
           <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
-            <LockOutlinedIcon />
+            <MonetizationOnIcon />
           </Avatar>
           <Typography component="h1" variant="h5">
-            Sign up
+            Order
           </Typography>
           <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 3 }}>
             <Grid container spacing={2}>
               <Grid item xs={12}>
+                <BuySellSwitch changeSwitch = {setChecked}></BuySellSwitch>
+              </Grid>
+              <Grid item xs={12}>
                 <TextField
                   required
                   fullWidth
-                  name="username"
-                  id="username"
-                  label="Username"
-                  onChange={(e) => setUsername(e.target.value)}
+                  name="ticker"
+                  id="ticker"
+                  label="Ticker"
+                  onChange={(e) => setTicker(e.target.value)}
                 />
               </Grid>
               <Grid item xs={12}>
                 <TextField
                   required
                   fullWidth
-                  name="password"
-                  label="Password"
-                  type="password"
-                  id="password"
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="new-password"
+                  name="quantity"
+                  label="Quantity"
+                  type="quantity"
+                  id="quantity"
+                  onChange={(e) => setQuantity(e.target.value)}
+                  autoComplete="new-quantity"
                 />
               </Grid>
             </Grid>
@@ -76,15 +101,8 @@ export default function Order({token, setToken, loggedIn, setLoggedIn}) {
               sx={{ mt: 3, mb: 2 }}
               style={{backgroundColor: '#2E3B55'}}
             >
-              Sign Up
+              Order
             </Button>
-            <Grid container justifyContent="flex-end">
-              <Grid item>
-                <Link to={"/login"}>
-                  Already have an account? Log in
-                </Link>
-              </Grid>
-            </Grid>
           </Box>
         </Box>
       </Container>
