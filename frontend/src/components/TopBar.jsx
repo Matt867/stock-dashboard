@@ -10,6 +10,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import SearchIcon from '@mui/icons-material/Search';
 import Button from '@mui/material/Button';
 import { useState, useEffect } from 'react';
+import { Container } from '@mui/system';
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
@@ -71,7 +72,7 @@ export default function TopBar() {
 
     }
 
-    getUsername()
+
   }, [])
 
 
@@ -79,6 +80,7 @@ export default function TopBar() {
     <Box sx={{ flexGrow: 1 }}>
       <AppBar position="static" style={{ background: '#2E3B55' }}>
         <Toolbar>
+          <Container style={{display:'flex'}}>
           <Search onChange={(e) => setSearchQuery(e.target.value)}>
             <SearchIconWrapper>
               <SearchIcon />
@@ -88,7 +90,11 @@ export default function TopBar() {
               inputProps={{ 'aria-label': 'search' }}
             />
           </Search>
-          <Button variant="contained" style={{ background: "#6e87ba",marginLeft: "10px"}}>Search</Button>
+          <Button variant="contained" style={{marginLeft: "10px"}} sx={{ backgroundColor: 'primary.main'}}>Search</Button>
+          </Container>
+
+          <Button variant="contained" style={{ marginLeft: "10px"}} sx={{ backgroundColor: 'primary.main'}}>Signup</Button>
+          <Button variant="contained" style={{marginLeft: "10px"}} sx={{ backgroundColor: 'primary.main'}}>Login</Button>
           {/* <Typography
             variant="h6"
             noWrap

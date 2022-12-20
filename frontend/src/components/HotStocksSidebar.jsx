@@ -25,7 +25,7 @@ export default function ListDividers({stocks}) {
           <ListItem>
             <SmallStockCard key={i} ticker={stock.ticker} price={stock.price} percentchange={stock.percentchange}/>
           </ListItem>
-          <Divider />
+          {/* <Divider /> */}
           </>
         })}
       </List>

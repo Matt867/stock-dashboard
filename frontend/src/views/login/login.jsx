@@ -16,7 +16,7 @@ import { Link } from "react-router-dom"
 
 const theme = createTheme();
 
-export default function LogIn() {
+export default function LogIn({token, setToken, loggedIn, setLoggedIn}) {
 
   const [userName, setUsername] = useState("")
   const [passWord, setPassword] = useState("")
@@ -37,8 +37,14 @@ export default function LogIn() {
         })
       })
 
-      if (response.statusCode !== 200) {
-          console.log("User was not created")
+      if (response.status == 200) {
+          console.log("Login Successful")
+
+          const data = await response.json()
+          console.log(data.token)
+          setToken(data.token)
+          setLoggedIn(true)
+          window.location = '/'
       } else {
           console.log("User created!")
       }
@@ -48,6 +54,7 @@ export default function LogIn() {
     <ThemeProvider theme={theme}>
       <Container component="main" maxWidth="xs">
         <CssBaseline />
+        {loggedIn}
         <Box
           sx={{
             marginTop: 8,

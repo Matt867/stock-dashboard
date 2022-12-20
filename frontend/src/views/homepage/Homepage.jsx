@@ -2,36 +2,18 @@ import * as React from 'react';
 import SmallStockCard from '../../components/SmallStockCard'
 import HotStocksSidebar from '../../components/HotStocksSidebar'
 import TopBar from '../../components/TopBar'
+import PortFolioBalance from '../../components/PortfolioBalance';
 import { useEffect, useState } from 'react';
 import {nanoid} from 'nanoid'
-
-const stocks = [
-    {
-        ticker: "TSLA",
-        price: 125.53,
-        percentchange: 6.3
-    },
-    {
-        ticker: "AAPL",
-        price: 632.51,
-        percentchange: -2.1
-    },
-    {
-        ticker: "MSFT",
-        price: 3.13,
-        percentchange: 0.2
-    },
-    {
-        ticker: "BBYD",
-        price: 1.32,
-        percentchange: 16.3
-    },
-]
+import OrderHistoryList from '../../components/OrderHistoryList';
+import { Container } from '@mui/system';
 
 
-export default function Homepage() {
+export default function Homepage({token, setToken, loggedIn, setLoggedIn}) {
 
     const [hotStocks, setHotStocks] = useState([])
+    const [balance, setBalance] = useState(432323.32)
+    const [orderHistory, setOrderHistory] = useState([])
 
     useEffect(() => {
         async function populateTopStocks () {
@@ -42,14 +24,47 @@ export default function Homepage() {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    count: 5
+                    count: 10
                 })
             })
             const data = await response.json();
-            console.log(data);
             setHotStocks(data);
         }
-        
+
+        async function getBalance () {
+            console.log(token)
+            const response = await fetch('http://88.198.184.61:2345/portfolio/value', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    token: 'fb0dfece579cd25ecdd81789905eadb4'
+                })
+            })
+            const data = await response.text();
+            setBalance(data);
+        }
+
+        async function getOrderHistory () {
+            console.log(token)
+            const response = await fetch('http://88.198.184.61:2345/orders', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    token: 'fb0dfece579cd25ecdd81789905eadb4'
+                })
+            })
+            const data = await response.json();
+            setOrderHistory(data);
+        }
+
+        getOrderHistory()
+        getBalance()
         populateTopStocks()
     }, [])
 
@@ -58,7 +73,19 @@ export default function Homepage() {
     return (
         <>
             <TopBar></TopBar>
-            <HotStocksSidebar stocks={hotStocks}/>
+            {/* {balance} */}
+            <PortFolioBalance value={balance}/>
+            <Container sx={{
+                display: 'grid',
+                gridAutoFlow: 'column',
+                gridTemplateColumns: '3fr 1fr',
+                paddingTop: '30px'
+            }}>
+                <Container>
+                    <OrderHistoryList orderHistory={orderHistory}/>
+                </Container>
+                <HotStocksSidebar stocks={hotStocks}/>
+            </Container>
         </>
     )
 }

@@ -7,6 +7,7 @@ import CardContent from '@mui/material/CardContent';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 
+
 import { useState } from 'react';
 
 const bull = (
@@ -20,34 +21,29 @@ const bull = (
 
 
 
+
 /**
  * 
  * needs ticker, price, percentchange 
  */
 
 
-export default function SmallStockCard({ ticker, price, percentchange}) {
-    const [colorDepth, setColorDepth] = useState(300);
-
-    function handleMouseOver() {
-        setColorDepth(600);
-    }
-    
-    function handleMouseLeave() {
-        setColorDepth(300);
-    }
+export default function OrderHistoryCard({ order }) {
 
     return (
-        <Card onMouseEnter={handleMouseOver} onMouseLeave={handleMouseLeave} sx={{ width: '100%' }} style={{backgroundColor: percentchange > 0 ? green[colorDepth]: red[colorDepth]}} >
-        <CardContent >
-            <Typography sx={{fontWeight: 'bold'}} variant="h5" component="div">
-            {ticker}
+        <Card sx={{ width: '100%' }}>
+        <CardContent sx={{ display: 'flex', flexDirection: 'column'}}>
+            <Typography sx={{fontWeight: 'bold'}} variant="h5" component="div" style={{color: order['type'] == 'SELL' ? red[600] : green[600]}}>
+            {order['type']}
             </Typography>
             <Typography variant="h5" component="div">
-            {price} USD
+            Ticker: {order["ticker"]}
             </Typography>
             <Typography sx={{fontWeight: 'bold'}} variant="h5" component="div">
-            {percentchange}%
+            Quantity {order["quantity"]}
+            </Typography>
+            <Typography sx={{fontStyle: 'oblique'}} variant="h5" component="div">
+            {order["ordertime"]}
             </Typography>
         </CardContent>
         </Card>
