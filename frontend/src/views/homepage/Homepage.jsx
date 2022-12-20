@@ -29,7 +29,7 @@ export default function Homepage({token, setToken, loggedIn, setLoggedIn}) {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    count: 1
+                    count: 5
                 })
             })
             const data = await response.json();

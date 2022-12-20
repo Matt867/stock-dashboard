@@ -14,7 +14,7 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { useState } from 'react';
 import { Link } from "react-router-dom";
 import BuySellSwitch from '../../components/buysellswitch';
-
+import TopBar from "../../components/TopBar";
 const theme = createTheme();
 
 export default function Order({token, setToken, loggedIn, setLoggedIn}) {
@@ -50,7 +50,8 @@ export default function Order({token, setToken, loggedIn, setLoggedIn}) {
     console.log("change detected", checked)
   }, [checked])
 
-  return (
+  return (<>
+    <TopBar></TopBar>
     <ThemeProvider theme={theme}>
       <Container component="main" maxWidth="xs">
         <CssBaseline />
@@ -109,4 +110,4 @@ export default function Order({token, setToken, loggedIn, setLoggedIn}) {
         </Box>
       </Container>
     </ThemeProvider>
-  )};
+    </>)};
