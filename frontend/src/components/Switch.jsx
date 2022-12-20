@@ -7,7 +7,7 @@ export default function ControlledSwitches({setParent}) {
   const handleChange = (event) => {
     setChecked(event.target.checked);
     console.log(event.target.checked)
-    // setParent(event.target.checked)
+    setParent(event.target.checked)
   };
 
   return (
