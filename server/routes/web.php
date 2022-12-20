@@ -17,6 +17,31 @@ use Illuminate\Support\Facades\Http;
 
 const API_KEY = "cedgceiad3i8tooa17b0cedgceiad3i8tooa17bg";
 
+// Check that a token is valid, return associated user
+function checkToken($token) {
+    // prepared statement to query db for username password and id of username with specified username
+    $results = DB::select('SELECT userid FROM tokens WHERE token=?', array($token));
+
+    // guard clause to throw exception if user does not exist
+    if (count($results) < 1) {
+        abort(403, "Invalid token");
+    }
+
+    // Tokens are unique, so there should only be one result
+    $result = (array)$results[0];
+
+    return $result["userid"];
+}
+
+// Generate an authentication token
+function generateToken() {
+    $token = openssl_random_pseudo_bytes(16);
+
+    $token = bin2hex($token);
+
+    return $token;
+}
+
 // Check if a ticker is valid
 function validTicker($ticker) {
     $response = Http::acceptJson()
@@ -52,7 +77,7 @@ Route::get('/getPrice/{ticker}', function ($ticker) {
         ->withHeaders(['X-Finnhub-Token' => API_KEY])
         ->get('http://finnhub.io/api/v1/quote?symbol='.$ticker);
     $json = $response->json();
-    return json_encode(['price' => $json['c'], 'percentchange' => $json['dp']]);
+    return ['price' => $json['c'], 'percentchange' => $json['dp']];
     // todo check docs, return the whole object and rename keys
 });
 
@@ -105,13 +130,13 @@ Route::post('/login', function (Request $request) {
             abort(403);
         }
 
-        /*
-        * set some key vals in session that will allow us to
-        * get user info without having to constantly ask user to login
-        */
-        session(['id' => $result['id'], 'username' => $result['username']]);
+        // Generate new token
+        $token = generateToken();
 
-        return "Logged in";
+        // Store token in DB and associate it with a user
+        DB::insert('INSERT INTO tokens (userid, token) VALUES (?, ?)', array($result['id'], $token));
+
+        return array("token" => $token);
 
     } catch (Exception $e) {
         abort(400, $e->getMessage());
@@ -188,12 +213,8 @@ Route::post('/gettopstocks', function (Request $request) {
 Route::post('/buy', function (Request $request) {
     $request_data = $request->json()->all();
 
-    // Check session, get current user ID
-    if ($request->session()->missing("id")) {
-        abort(403);
-    };
-
-    $curr_user_id = $request->session()->get("id");
+    // Check token, get current user ID
+    $curr_user_id = checkToken($request_data["token"]);
 
     // Validate ticker
     if (!validTicker($request_data["ticker"])) {
@@ -221,12 +242,8 @@ Route::post('/buy', function (Request $request) {
 Route::post('/sell', function (Request $request) {
     $request_data = $request->json()->all();
 
-    // Check session, get current user ID
-    if ($request->session()->missing("id")) {
-        abort(403);
-    };
-
-    $curr_user_id = $request->session()->get("id");
+    // Check token, get current user ID
+    $curr_user_id = checkToken($request_data["token"]);
 
     // Validate ticker
     if (!validTicker($request_data["ticker"])) {
@@ -253,13 +270,12 @@ Route::post('/sell', function (Request $request) {
     }
 });
 
-// Get current username from current session
-Route::get('/user', function (Request $request) {
+// Get current username with a token todo
+Route::post('/user', function (Request $request) {
+    $request_data = $request->json()->all();
 
-    if ($request->session()->missing("id")) {
-        abort(403, "Missing user");
-    }
-    $curr_user_id = $request->session()->get("id");
+    // Check token, get current user ID
+    $curr_user_id = checkToken($request_data["token"]);
 
     $queryresult = DB::select('SELECT username FROM users WHERE id=?', array($curr_user_id));
 
@@ -271,28 +287,22 @@ Route::get('/user', function (Request $request) {
 
 });
 
-Route::get('/portfolio', function (Request $request) {
+Route::post('/portfolio', function (Request $request) {
+    $request_data = $request->json()->all();
 
-    // Get current user
-    if ($request->session()->missing("id")) {
-        abort(403);
-    }
-
-    $curr_user_id = $request->session()->get("id");
+    // Check token, get current user ID
+    $curr_user_id = checkToken($request_data["token"]);
     
     // Get and return their portfolio
     $queryresult = DB::select('SELECT ticker, quantity FROM portfolios WHERE userid=?', array($curr_user_id));
     return $queryresult;
 });
 
-Route::get('/portfolio/value', function (Request $request) {
+Route::post('/portfolio/value', function (Request $request) {
+    $request_data = $request->json()->all();
 
-    // Get current user
-    if ($request->session()->missing("id")) {
-        abort(403);
-    }
-
-    $curr_user_id = $request->session()->get("id");
+    // Check token, get current user ID
+    $curr_user_id = checkToken($request_data["token"]);
     
     // Sum their portfolio, calculate and return the value
     $queryresult = DB::select('SELECT ticker, quantity FROM portfolios WHERE userid=?', array($curr_user_id));
@@ -309,18 +319,54 @@ Route::get('/portfolio/value', function (Request $request) {
     return $value;
 });
 
-Route::get('/orders', function () {
-    //todo
+// Get order history for current session user, most to least recent, buys and sells together
+Route::post('/orders', function (Request $request) {
+    $request_data = $request->json()->all();
+
+    // Check token, get current user ID
+    $curr_user_id = checkToken($request_data["token"]);
+
+    // Query DB, get both buys and sells chronologically
+    $results = array();
+
+    $queryresult = DB::select('SELECT buyorders.ordertime, buyorders.quantity, buyorders.ticker, "BUY" AS type
+          FROM buyorders
+          WHERE buyorders.userid = ?
+          UNION
+          SELECT sellorders.ordertime, sellorders.quantity, sellorders.ticker, "SELL" AS type
+          FROM sellorders
+          WHERE sellorders.userid = ?
+          ORDER BY ordertime DESC', array($curr_user_id, $curr_user_id));
+
+    return $queryresult;
+
 });
-// todo endpoint for order history for current session user
 
 Route::get('/search/{ticker}', function ($ticker, Request $request) {
+
+    $ticker = strtoupper($ticker);
+
+    if (!validTicker($ticker)) {
+        abort(400);
+    }
+
+    $response = Http::acceptJson()
+        ->withHeaders(['X-Finnhub-Token' => API_KEY])
+        ->get('http://finnhub.io/api/v1/quote?symbol='.$ticker);    
+    $json = $response->json();
     
+    // Add company name to response, then send response
+    $response2 = Http::acceptJson()
+        ->withHeaders(['X-Finnhub-Token' => API_KEY])
+        ->get('http://finnhub.io/api/v1/search?q='.$ticker);    
+    $json2 = $response2->json();
+    $company_name = $json2["result"][0]["description"];
+    
+    $json["companyName"] = $company_name;
+    return ['price' => $json['c'], 'change' => $json['d'], 'percentchange' => $json['dp'], 'name' => $json['companyName'], 'high' => $json['h'], 'low' => $json['l'], 'open' => $json['o'], 'previousclose' => $json['pc']];
+
 });
 
-// if time, todo endpoint /search/:ticker 
-
-Route::get('/', function () {
-   // homepage?
+Route::get('/', function (Request $request) {
+    return var_dump($request->session());
 });
-
