@@ -143,70 +143,69 @@ Route::post('/login', function (Request $request) {
     }
 });
 
-// Get top N stocks
+// Get top N stocks. Note: This route is kind of slow, I think it could use some caching. Maybe create a cache, either through the DB or in an array, check if the entries are
+// more than 5(?) minutes old and if they are too old, only then make external calls to the API and then update the cache with new values and timestamp. This way, we only call the API every 5 minutes at worst.
+// ^ Would probably fix the erratic behaviour on the homepage of the frontend.
 Route::post('/gettopstocks', function (Request $request) {
-    try {
-        $data = $request->json()->all();
+    $data = $request->json()->all();
 
-        // Currently hardcodes tickers for top 25 best performing stocks, price to be filled in by API later
-        $top25 = array(
-        'TSLA',
-        'AAPL',
-        'MSFT',
-        'META',
-        'GOOGL',
-        'XOM',
-        'VLO',
-        'ENPH',
-        'APA',
-        'SLB',
-        'COP',
-        'HAL',
-        'EOG',
-        'CVX',
-        'CAH',
-        'DVN',
-        'MCK',
-        'CF',
-        'PSX',
-        'CTRA',
-        'ADM',
-        'VRTX',
-        'MRK',
-        'CI',
-        'TRGP',
-        );
+    // Currently hardcodes tickers for top 25 best performing stocks, price to be filled in by API later
+    $top25 = array(
+    'TSLA',
+    'AAPL',
+    'MSFT',
+    'META',
+    'GOOGL',
+    'XOM',
+    'VLO',
+    'ENPH',
+    'APA',
+    'SLB',
+    'COP',
+    'HAL',
+    'EOG',
+    'CVX',
+    'CAH',
+    'DVN',
+    'MCK',
+    'CF',
+    'PSX',
+    'CTRA',
+    'ADM',
+    'VRTX',
+    'MRK',
+    'CI',
+    'TRGP',
+    );
 
-        // Missing count in request body
-        if (!isset($data["count"])) {
-            throw new Exception("Count not sent.");
-        }
-
-        // Over 25 not currently supported
-        if (intval($data["count"] > 25)) {
-            throw new Exception("Over top 25 is currently not supported.");
-        }
-
-
-        $responseObject = array();
-
-        // Get prices for top N stocks from API and append result to response array
-        for ($i = 0; $i < intval($data["count"]); $i++) {
-            $response = Http::acceptJson()
-            ->withHeaders(['X-Finnhub-Token' => API_KEY])
-            ->get('http://finnhub.io/api/v1/quote?symbol='.$top25[$i]);
-
-            $json = $response->json();
-
-            $responseObject[] = array('ticker' => $top25[$i], 'price' => $json['c'], 'percentchange' => $json['dp']);
-
-        }
-
-        return $responseObject;
-        
-    } catch (Exception $e) {
-        abort(400, $e->getMessage());
+    // Missing count in request body
+    if (!isset($data["count"])) {
+        throw new Exception("Count not sent.");
     }
+
+    // Over 25 not currently supported
+    if (intval($data["count"] > 25)) {
+        throw new Exception("Over top 25 is currently not supported.");
+    }
+
+
+    $responseObject = array();
+
+    // Get prices for top N stocks from API and append result to response array
+    for ($i = 0; $i < intval($data["count"]); $i++) {
+        $response = Http::acceptJson()
+        ->withHeaders(['X-Finnhub-Token' => API_KEY])
+        ->get('http://finnhub.io/api/v1/quote?symbol='.$top25[$i]);
+
+        $json = $response->json();
+
+        $responseObject[] = array('ticker' => $top25[$i], 'price' => $json['c'], 'percentchange' => $json['dp']);
+
+        usleep(0.5);
+    }
+
+    return $responseObject;
+        
 });
 
 // Given a ticker and a quantity, buy stocks and update a user's portfolio
