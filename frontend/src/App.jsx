@@ -17,6 +17,7 @@ import Homepage from './views/homepage/Homepage.jsx';
 import SignUp from './views/signup/signup';
 import LogIn from './views/login/login';
 import { Routes, Route } from 'react-router-dom';
+import Order from './views/order/order';
 
 function App() {
 
@@ -34,6 +35,7 @@ function App() {
           <Route path="/" element={<Homepage token={token} setToken={setToken} loggedIn={loggedIn} setLoggedIn={setLoggedIn}/>}/>
           <Route path="/signup" element={<SignUp token={token} setToken={setToken} loggedIn={loggedIn} setLoggedIn={setLoggedIn}/>}/>
           <Route path="/login" element={<LogIn token={token} setToken={setToken} loggedIn={loggedIn} setLoggedIn={setLoggedIn}/>}/>
+          <Route path="/order" element={<Order token={token} setToken={setToken} loggedIn={loggedIn} setLoggedIn={setLoggedIn}/>}/>
         </Routes>
     </ThemeProvider>
     </>
