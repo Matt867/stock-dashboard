@@ -17,6 +17,31 @@ use Illuminate\Support\Facades\Http;
 
 const API_KEY = "cedgceiad3i8tooa17b0cedgceiad3i8tooa17bg";
 
+// Check that a token is valid, return associated user
+function checkToken($token) {
+    // prepared statement to query db for username password and id of username with specified username
+    $results = DB::select('SELECT userid FROM tokens WHERE token=?', array($token));
+
+    // guard clause to throw exception if user does not exist
+    if (count($results) < 1) {
+        abort(403, "Invalid token");
+    }
+
+    // Tokens are unique, so there should only be one result
+    $result = (array)$results[0];
+
+    return $result["userid"];
+}
+
+// Generate an authentication token
+function generateToken() {
+    $token = openssl_random_pseudo_bytes(16);
+
+    $token = bin2hex($token);
+
+    return $token;
+}
+
 // Check if a ticker is valid
 function validTicker($ticker) {
     $response = Http::acceptJson()
@@ -105,18 +130,13 @@ Route::post('/login', function (Request $request) {
             abort(403);
         }
 
-        /*
-        * set some key vals in session that will allow us to
-        * get user info without having to constantly ask user to login
-        */
-        // session(['id' => $result['id'], 'username' => $result['username']]);
-        $request->session()->put('id', $result['id']);
-        $request->session()->put('username', $result['username']);
+        // Generate new token
+        $token = generateToken();
 
-        if($request->session()->missing('id')) {
-            abort(400, "AHa, the id was never set");
-        }
-        return $result['id'];
+        // Store token in DB and associate it with a user
+        DB::insert('INSERT INTO tokens (userid, token) VALUES (?, ?)', array($result['id'], $token));
+
+        return array("token" => $token);
 
     } catch (Exception $e) {
         abort(400, $e->getMessage());
@@ -193,12 +213,8 @@ Route::post('/gettopstocks', function (Request $request) {
 Route::post('/buy', function (Request $request) {
     $request_data = $request->json()->all();
 
-    // Check session, get current user ID
-    if ($request->session()->missing("id")) {
-        abort(403);
-    };
-
-    $curr_user_id = $request->session()->get("id");
+    // Check token, get current user ID
+    $curr_user_id = checkToken($request_data["token"]);
 
     // Validate ticker
     if (!validTicker($request_data["ticker"])) {
@@ -226,12 +242,8 @@ Route::post('/buy', function (Request $request) {
 Route::post('/sell', function (Request $request) {
     $request_data = $request->json()->all();
 
-    // Check session, get current user ID
-    if ($request->session()->missing("id")) {
-        abort(403);
-    };
-
-    $curr_user_id = $request->session()->get("id");
+    // Check token, get current user ID
+    $curr_user_id = checkToken($request_data["token"]);
 
     // Validate ticker
     if (!validTicker($request_data["ticker"])) {
@@ -258,13 +270,12 @@ Route::post('/sell', function (Request $request) {
     }
 });
 
-// Get current username from current session
-Route::get('/user', function (Request $request) {
+// Get current username with a token todo
+Route::post('/user', function (Request $request) {
+    $request_data = $request->json()->all();
 
-    if ($request->session()->missing("id")) {
-        abort(403, "Missing user");
-    }
-    $curr_user_id = $request->session()->get("id");
+    // Check token, get current user ID
+    $curr_user_id = checkToken($request_data["token"]);
 
     $queryresult = DB::select('SELECT username FROM users WHERE id=?', array($curr_user_id));
 
@@ -276,28 +287,22 @@ Route::get('/user', function (Request $request) {
 
 });
 
-Route::get('/portfolio', function (Request $request) {
+Route::post('/portfolio', function (Request $request) {
+    $request_data = $request->json()->all();
 
-    // Get current user
-    if ($request->session()->missing("id")) {
-        abort(403);
-    }
-
-    $curr_user_id = $request->session()->get("id");
+    // Check token, get current user ID
+    $curr_user_id = checkToken($request_data["token"]);
     
     // Get and return their portfolio
     $queryresult = DB::select('SELECT ticker, quantity FROM portfolios WHERE userid=?', array($curr_user_id));
     return $queryresult;
 });
 
-Route::get('/portfolio/value', function (Request $request) {
+Route::post('/portfolio/value', function (Request $request) {
+    $request_data = $request->json()->all();
 
-    // Get current user
-    if ($request->session()->missing("id")) {
-        abort(403);
-    }
-
-    $curr_user_id = $request->session()->get("id");
+    // Check token, get current user ID
+    $curr_user_id = checkToken($request_data["token"]);
     
     // Sum their portfolio, calculate and return the value
     $queryresult = DB::select('SELECT ticker, quantity FROM portfolios WHERE userid=?', array($curr_user_id));
@@ -315,14 +320,11 @@ Route::get('/portfolio/value', function (Request $request) {
 });
 
 // Get order history for current session user, most to least recent, buys and sells together
-Route::get('/orders', function (Request $request) {
+Route::post('/orders', function (Request $request) {
+    $request_data = $request->json()->all();
 
-    // Get current user
-    if ($request->session()->missing("id")) {
-        abort(403);
-    }
-
-    $curr_user_id = $request->session()->get("id");
+    // Check token, get current user ID
+    $curr_user_id = checkToken($request_data["token"]);
 
     // Query DB, get both buys and sells chronologically
     $results = array();
