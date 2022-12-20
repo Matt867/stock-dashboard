@@ -109,9 +109,14 @@ Route::post('/login', function (Request $request) {
         * set some key vals in session that will allow us to
         * get user info without having to constantly ask user to login
         */
-        session(['id' => $result['id'], 'username' => $result['username']]);
+        // session(['id' => $result['id'], 'username' => $result['username']]);
+        $request->session()->put('id', $result['id']);
+        $request->session()->put('username', $result['username']);
 
-        return "Logged in";
+        if($request->session()->missing('id')) {
+            abort(400, "AHa, the id was never set");
+        }
+        return $result['id'];
 
     } catch (Exception $e) {
         abort(400, $e->getMessage());
@@ -322,9 +327,16 @@ Route::get('/orders', function (Request $request) {
     // Query DB, get both buys and sells chronologically
     $results = array();
 
-    $queryresult = DB::select('', array($curr_user_id));
+    $queryresult = DB::select('SELECT buyorders.ordertime, buyorders.quantity, buyorders.ticker, "BUY" AS type
+          FROM buyorders
+          WHERE buyorders.userid = ?
+          UNION
+          SELECT sellorders.ordertime, sellorders.quantity, sellorders.ticker, "SELL" AS type
+          FROM sellorders
+          WHERE sellorders.userid = ?
+          ORDER BY ordertime DESC', array($curr_user_id, $curr_user_id));
 
-    // todo figure out queries and joins to get desired result
+    return $queryresult;
 
 });
 
@@ -353,3 +365,6 @@ Route::get('/search/{ticker}', function ($ticker, Request $request) {
 
 });
 
+Route::get('/', function (Request $request) {
+    return var_dump($request->session());
+});
