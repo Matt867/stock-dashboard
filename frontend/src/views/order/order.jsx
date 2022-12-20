@@ -27,7 +27,7 @@ export default function Order({token, setToken, loggedIn, setLoggedIn}) {
     event.preventDefault();
     console.log(event)
     let url = "";
-    checked ? url = "http://88.198.184.61:2345/buy" : url = "http://88.198.184.61:2345/sell";
+    checked ? url = "http://88.198.184.61:2345/sell" : url = "http://88.198.184.61:2345/buy";
     
     const response = await fetch(url, {
           method: "POST",
@@ -38,9 +38,11 @@ export default function Order({token, setToken, loggedIn, setLoggedIn}) {
               body: JSON.stringify({
                   ticker: ticker,
                   quantity: quantity,
-                  token: token,
+                  token: "99d5df736a9f577fcf7b90e0e8df1a0b",
               })
       })
+    
+    window.location.href = "/"
 
   }
 
