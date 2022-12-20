@@ -289,7 +289,7 @@ Route::post('/user', function (Request $request) {
 
 Route::post('/portfolio', function (Request $request) {
     $request_data = $request->json()->all();
-
+    
     // Check token, get current user ID
     $curr_user_id = checkToken($request_data["token"]);
     

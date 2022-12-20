@@ -6,14 +6,19 @@ import PortFolioBalance from '../../components/PortfolioBalance';
 import { useEffect, useState } from 'react';
 import {nanoid} from 'nanoid'
 import OrderHistoryList from '../../components/OrderHistoryList';
+import PortfolioList from '../../components/PortfolioList';
+import ControlledSwitches from '../../components/Switch';
 import { Container } from '@mui/system';
+import { Switch } from '@mui/material';
 
 
 export default function Homepage({token, setToken, loggedIn, setLoggedIn}) {
 
     const [hotStocks, setHotStocks] = useState([])
+    const [portfolio, setPortfolio] = useState([])
     const [balance, setBalance] = useState(0)
     const [orderHistory, setOrderHistory] = useState([])
+    const [showPortfolio, setShowPortfolio] = useState(true)
 
     useEffect(() => {
         async function populateTopStocks () {
@@ -24,7 +29,7 @@ export default function Homepage({token, setToken, loggedIn, setLoggedIn}) {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    count: 2
+                    count: 1
                 })
             })
             const data = await response.json();
@@ -63,6 +68,23 @@ export default function Homepage({token, setToken, loggedIn, setLoggedIn}) {
             setOrderHistory(data);
         }
 
+        async function getPortfolio () {
+            console.log(token)
+            const response = await fetch('http://88.198.184.61:2345/portfolio', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    token: 'fb0dfece579cd25ecdd81789905eadb4'
+                })
+            })
+            const data = await response.json();
+            setPortfolio(data);
+        }
+
+        getPortfolio()
         getOrderHistory()
         getBalance()
         populateTopStocks()
@@ -81,8 +103,12 @@ export default function Homepage({token, setToken, loggedIn, setLoggedIn}) {
                 gridTemplateColumns: '3fr 1fr',
                 paddingTop: '30px'
             }}>
+                {/* <ControlledSwitches setParent={(val) => {
+                    setShowPortfolio(val)
+                    console.log(val)
+                }}/> */}
                 <Container>
-                    <OrderHistoryList orderHistory={orderHistory}/>
+                    {showPortfolio ? <PortfolioList portfolio={portfolio}/>: <OrderHistoryList orderHistory={orderHistory}/>}
                 </Container>
                 <HotStocksSidebar stocks={hotStocks}/>
             </Container>

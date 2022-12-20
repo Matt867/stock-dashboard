@@ -60,19 +60,19 @@ export default function Stock({token, setToken, loggedIn, setLoggedIn}) {
                                 {company} - {ticker}
                             </Typography>
                             <Typography sx={{fontWeight: 'bold'}} variant="h4" component="div">
-                                {current}
+                                ${current}
                             </Typography>
                             <Typography variant="h5" component="div">
-                                {open}
+                                ${open}
                             </Typography>
                             <Typography variant="h5" component="div">
-                                Today's high: {high}
+                                Today's high: ${high}
                             </Typography>
                             <Typography variant="h5" component="div">
-                                Today's low: {low}
+                                Today's low: ${low}
                             </Typography>
                             <Typography sx={{fontWeight: 'bold', color: percentChange > 0 ? 'green' : 'red'}} variant="h5" component="div">
-                                Percent change today: {percentChange}%
+                                Change today: {percentChange}%
                             </Typography>
                         </CardContent>
                     </Card>
