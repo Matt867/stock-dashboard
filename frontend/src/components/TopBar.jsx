@@ -75,6 +75,10 @@ export default function TopBar() {
 
   }, [])
 
+  function handleSearch() {
+    window.location.href = `http://88.198.184.61:4000/stock/${searchQuery}`
+  }
+
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -90,11 +94,11 @@ export default function TopBar() {
               inputProps={{ 'aria-label': 'search' }}
             />
           </Search>
-          <Button variant="contained" style={{marginLeft: "10px"}} sx={{ backgroundColor: 'primary.main'}}>Search</Button>
+          <Button variant="contained" style={{marginLeft: "10px"}} sx={{ backgroundColor: 'primary.main'}} onClick={handleSearch}>Search</Button>
           </Container>
 
-          <Button variant="contained" style={{ marginLeft: "10px"}} sx={{ backgroundColor: 'primary.main'}}>Signup</Button>
-          <Button variant="contained" style={{marginLeft: "10px"}} sx={{ backgroundColor: 'primary.main'}}>Login</Button>
+          <Button variant="contained" style={{ marginLeft: "10px"}} sx={{ backgroundColor: 'primary.main'}} onClick={() => {window.location.href = `http://88.198.184.61:4000/signup`}}>Signup</Button>
+          <Button variant="contained" style={{marginLeft: "10px"}} sx={{ backgroundColor: 'primary.main'}} onClick={() => {window.location.href = `http://88.198.184.61:4000/login`}}>Login</Button>
           {/* <Typography
             variant="h6"
             noWrap

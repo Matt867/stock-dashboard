@@ -12,7 +12,7 @@ import { Container } from '@mui/system';
 export default function Homepage({token, setToken, loggedIn, setLoggedIn}) {
 
     const [hotStocks, setHotStocks] = useState([])
-    const [balance, setBalance] = useState(432323.32)
+    const [balance, setBalance] = useState(0)
     const [orderHistory, setOrderHistory] = useState([])
 
     useEffect(() => {
@@ -24,7 +24,7 @@ export default function Homepage({token, setToken, loggedIn, setLoggedIn}) {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    count: 10
+                    count: 2
                 })
             })
             const data = await response.json();

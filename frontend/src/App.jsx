@@ -10,7 +10,6 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { useState } from 'react';
 
 import { themeOptions } from './utils/themeOption';
-import InteractiveList from './views/marketView/MarketView';
 import BarChart from './components/BarChart';
 import AreaChart from './components/AreaCart';
 import Homepage from './views/homepage/Homepage.jsx';
@@ -18,6 +17,7 @@ import SignUp from './views/signup/signup';
 import LogIn from './views/login/login';
 import { Routes, Route } from 'react-router-dom';
 import Order from './views/order/order';
+import Stock from './views/individualstock/stock';
 
 function App() {
 
@@ -36,6 +36,7 @@ function App() {
           <Route path="/signup" element={<SignUp token={token} setToken={setToken} loggedIn={loggedIn} setLoggedIn={setLoggedIn}/>}/>
           <Route path="/login" element={<LogIn token={token} setToken={setToken} loggedIn={loggedIn} setLoggedIn={setLoggedIn}/>}/>
           <Route path="/order" element={<Order token={token} setToken={setToken} loggedIn={loggedIn} setLoggedIn={setLoggedIn}/>}/>
+          <Route path="/stock/:TICK" element={<Stock token={token} setToken={setToken} loggedIn={loggedIn} setLoggedIn={setLoggedIn}/>}/>
         </Routes>
     </ThemeProvider>
     </>
