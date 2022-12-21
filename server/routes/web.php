@@ -25,7 +25,7 @@ function api_call($url) {
 
     $results = DB::select('SELECT id, response, expiration FROM cache WHERE request=?', array($url));
 
-    // Look for a current entry in the cache (<5min)
+    // Look for a current entry in the cache (<3min)
     for($i=0; $i < count($results); $i++) {
         $entry = (array)$results[$i];
         if (date('Y-m-d H:i:s') < $entry["expiration"]) {
@@ -284,9 +284,12 @@ Route::post('/sell', function (Request $request) {
 
     // Check that the user has enough stocks to sell (that the sell is valid)
     $queryresult = DB::select('SELECT quantity FROM portfolios WHERE userid=? AND ticker=?', array($curr_user_id, $request_data["ticker"]));
+    if (count($queryresult) < 1) {
+            abort(400, "Invalid sell - attempting to sell more than user holds");
+        }
     $owned_quantity = (array)$queryresult[0];
     if ($owned_quantity["quantity"] < $request_data["quantity"]) {
-        abort(400);
+        abort(400, "Invalid sell - attempting to sell more than user holds");
     }
 
     // Add order to sells table
@@ -302,7 +305,7 @@ Route::post('/sell', function (Request $request) {
     }
 });
 
-// Get current username with a token todo
+// Get current username with a token
 Route::post('/user', function (Request $request) {
     $request_data = $request->json()->all();
 
@@ -379,7 +382,7 @@ Route::get('/search/{ticker}', function ($ticker, Request $request) {
     $ticker = strtoupper($ticker);
 
     if (!validTicker($ticker)) {
-        abort(400);
+        abort(400, "Invalid ticker");
     }
 
     $response = api_call('http://finnhub.io/api/v1/quote?symbol='.$ticker);    
@@ -396,5 +399,5 @@ Route::get('/search/{ticker}', function ($ticker, Request $request) {
 });
 
 Route::get('/', function (Request $request) {
-    return validTicker("TSLA");
+    return "Backend for stock dashboard";
 });
