@@ -11,6 +11,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import Button from '@mui/material/Button';
 import { useState, useEffect } from 'react';
 import { Container } from '@mui/system';
+import { useNavigate } from 'react-router-dom';
 
 const Search = styled('div')(({ theme }) => ({
   position: 'relative',
@@ -56,6 +57,8 @@ export default function TopBar() {
   const [searchQuery, setSearchQuery] = useState("")
   const [username, setUsername] = useState("")
 
+  const navigate = useNavigate()
+
   useEffect(() => {
     async function getUsername () {
       const response = await fetch("http://88.198.184.61:2345/user", {
@@ -76,15 +79,16 @@ export default function TopBar() {
   }, [])
 
   function handleSearch() {
-    window.location.href = `http://88.198.184.61:4000/stock/${searchQuery}`
+    navigate(`/stock/${searchQuery}`)
   }
 
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static" style={{ background: '#2E3B55' }}>
+      <AppBar position="static" style={{ background: 'black' }}>
         <Toolbar>
-          <Container style={{display:'flex'}}>
+          <Container style={{display:'flex', paddingLeft:'80px'}}>
+          <Button variant="outlined" style={{ marginLeft: "10px"}} onClick={() => {navigate('/')}}>Home</Button>
           <Search onChange={(e) => setSearchQuery(e.target.value)}>
             <SearchIconWrapper>
               <SearchIcon />
@@ -92,13 +96,14 @@ export default function TopBar() {
             <StyledInputBase
               placeholder="Search for a ticker"
               inputProps={{ 'aria-label': 'search' }}
+              style={{width: '615px'}}
             />
           </Search>
-          <Button variant="contained" style={{marginLeft: "10px"}} sx={{ backgroundColor: 'primary.main'}} onClick={handleSearch}>Search</Button>
+          <Button variant="contained" style={{marginLeft: "10px"}} onClick={handleSearch}>Search</Button>
           </Container>
 
-          <Button variant="contained" style={{ marginLeft: "10px"}} sx={{ backgroundColor: 'primary.main'}} onClick={() => {window.location.href = `http://88.198.184.61:4000/signup`}}>Signup</Button>
-          <Button variant="contained" style={{marginLeft: "10px"}} sx={{ backgroundColor: 'primary.main'}} onClick={() => {window.location.href = `http://88.198.184.61:4000/login`}}>Login</Button>
+          <Button variant="outlined" style={{ marginLeft: "10px"}} onClick={() => {navigate(`/signup`)}}>Sign up</Button>
+          <Button variant="outlined" style={{marginLeft: "10px"}} onClick={() => {navigate(`/login`)}}>Login</Button>
           {/* <Typography
             variant="h6"
             noWrap

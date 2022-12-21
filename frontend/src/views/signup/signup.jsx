@@ -12,14 +12,16 @@ import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { useState } from 'react';
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 
 const theme = createTheme();
 
-export default function SignUp({token, setToken, loggedIn, setLoggedIn}) {
+export default function SignUp() {
 
   const [userName, setUsername] = useState("")
   const [passWord, setPassword] = useState("")
+
+  const navigate = useNavigate()
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -36,10 +38,11 @@ export default function SignUp({token, setToken, loggedIn, setLoggedIn}) {
               })
       })
 
-      if (response.statusCode !== 200) {
+      if (response.status !== 200) {
           console.log("User was not created")
       } else {
           console.log("User created!")
+          navigate('/login')
       }
   }
 

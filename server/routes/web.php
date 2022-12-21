@@ -356,6 +356,29 @@ Route::post('/portfolio', function (Request $request) {
     return $queryresult;
 });
 
+Route::post('/portfolio/chart', function (Request $request) {
+    $tickerOrder = array();
+    $valueHeld = array();
+    
+    $request_data = $request->json()->all();
+
+    $curr_user_id = checkToken($request_data["token"]);
+
+    $queryresult = DB::select('SELECT ticker, quantity FROM portfolios WHERE userid=?', array($curr_user_id));
+
+    $value = 0;
+
+    for($i=0; $i < count($queryresult); $i++) {
+        $stock = (array)$queryresult[$i];
+        $current_price_of_stock = getPrice($stock["ticker"]);
+        $total_value_held = $current_price_of_stock * $stock["quantity"];
+        $tickerOrder[] = $stock["ticker"];
+        $valueHeld[] = $total_value_held;
+    }
+
+    return array($tickerOrder, $valueHeld);
+});
+
 Route::post('/portfolio/value', function (Request $request) {
     $request_data = $request->json()->all();
 

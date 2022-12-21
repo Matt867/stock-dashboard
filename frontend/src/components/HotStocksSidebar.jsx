@@ -16,8 +16,8 @@ const style = {
 export default function ListDividers({stocks}) {
   return (
     <Container style={{width: '320px'}}>
-      <Typography sx={{fontWeight: 'bold'}} variant="h4" component="div" align='center'>
-          Hot Stocks
+      <Typography sx={{fontWeight: 'bold'}} variant="h5" component="div" align='center'>
+          TradeZone Favourites
       </Typography>
       <List sx={style} component="nav" aria-label="hot stocks">
         {stocks.map((stock, i) => {
