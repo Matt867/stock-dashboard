@@ -159,7 +159,7 @@ Route::post('/login', function (Request $request) {
 
         // check given password matches db password
         if ($data['password'] !== $result['password']) {
-            abort(403);
+            abort(403, "Incorrect password");
         }
 
         // Generate new token
@@ -210,12 +210,12 @@ Route::post('/gettopstocks', function (Request $request) {
 
     // Missing count in request body
     if (!isset($data["count"])) {
-        throw new Exception("Count not sent.");
+        abort(400, "Count not sent");
     }
 
     // Over 25 not currently supported
     if (intval($data["count"] > 25)) {
-        throw new Exception("Over top 25 is currently not supported.");
+        abort(400, "Over 25 is currently not supported");
     }
 
 
@@ -239,6 +239,18 @@ Route::post('/gettopstocks', function (Request $request) {
 // Given a ticker and a quantity, buy stocks and update a user's portfolio
 Route::post('/buy', function (Request $request) {
     $request_data = $request->json()->all();
+
+    if (!isset($request_data["token"])) {
+        abort(400, "A token is required");
+    }
+
+    if (!isset($request_data["ticker"])) {
+        abort(400, "A ticker is required");
+    }
+
+    if (!isset($request_data["quantity"])) {
+        abort(400, "A quantity is required");
+    }
 
     // Check token, get current user ID
     $curr_user_id = checkToken($request_data["token"]);
@@ -268,6 +280,18 @@ Route::post('/buy', function (Request $request) {
 // Given a ticker and a quantity, sell stocks and update a user's portfolio
 Route::post('/sell', function (Request $request) {
     $request_data = $request->json()->all();
+
+    if (!isset($request_data["token"])) {
+        abort(400, "A token is required");
+    }
+
+    if (!isset($request_data["ticker"])) {
+        abort(400, "A ticker is required");
+    }
+
+    if (!isset($request_data["quantity"])) {
+        abort(400, "A quantity is required");
+    }
 
     // Check token, get current user ID
     $curr_user_id = checkToken($request_data["token"]);
@@ -303,6 +327,10 @@ Route::post('/sell', function (Request $request) {
 // Get current username with a token
 Route::post('/user', function (Request $request) {
     $request_data = $request->json()->all();
+
+    if (!isset($request_data["token"])) {
+        abort(400, "A token is required");
+    }
 
     // Check token, get current user ID
     $curr_user_id = checkToken($request_data["token"]);
