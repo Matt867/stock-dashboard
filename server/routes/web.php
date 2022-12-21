@@ -29,7 +29,7 @@ function api_call($url) {
 
             // Up to date entry exists, return the cached response.
             return $entry["response"];
-
+    
         }
 
         // Keep cache speedy and prevent it from getting too large by deleting rows that are expired as soon as we spot them
