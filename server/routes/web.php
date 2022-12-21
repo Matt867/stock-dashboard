@@ -19,13 +19,10 @@ const API_KEY = "cedgceiad3i8tooa17b0cedgceiad3i8tooa17bg";
 
 // Accepts API calls and utilizes caching with 3 minute expiration times to deliver fast responses.
 function api_call($url) {
-
-    // Assume not in cache initially, this boolean gets updated later if both of the cache checks pass (presence/timestamp)
-    $current_entry_exists = false;
-
+    
+    // Query the cache, and search for a non-expired entry in the cache (<3mins)
     $results = DB::select('SELECT id, response, expiration FROM cache WHERE request=?', array($url));
 
-    // Look for a current entry in the cache (<3min)
     for($i=0; $i < count($results); $i++) {
         $entry = (array)$results[$i];
         if (date('Y-m-d H:i:s') < $entry["expiration"]) {
@@ -110,10 +107,10 @@ function getPrice($ticker) {
 }
 
 Route::get('/getPrice/{ticker}', function ($ticker) {
+    $ticker = strtoupper($ticker);
     $response = api_call('http://finnhub.io/api/v1/quote?symbol='.$ticker);
     $json = json_decode($response, true);
-    return ['price' => $json['c'], 'percentchange' => $json['dp']];
-    // todo check docs, return the whole object and rename keys
+    return ['ticker' => $ticker, 'price' => $json['c'], 'percentchange' => $json['dp']];
 });
 
 Route::post('/signup', function (Request $request) {
@@ -178,9 +175,7 @@ Route::post('/login', function (Request $request) {
     }
 });
 
-// Get top N stocks. Note: This route is kind of slow, I think it could use some caching. Maybe create a cache, either through the DB or in an array, check if the entries are
-// more than 5(?) minutes old and if they are too old, only then make external calls to the API and then update the cache with new API response and timestamp. This way, we only call the API every 5 minutes in the worst case.
-// ^ Would probably fix the erratic behaviour on the homepage of the frontend.
+// Get top N stocks.
 Route::post('/gettopstocks', function (Request $request) {
     $data = $request->json()->all();
 
