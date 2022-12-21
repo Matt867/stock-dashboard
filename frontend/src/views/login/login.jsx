@@ -11,15 +11,19 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import { useState } from 'react';
-import { Link } from "react-router-dom"
+import { useState, useContext } from 'react';
+import { Link, redirect, useNavigate } from "react-router-dom"
+import { TokenContext } from '../../context/TokenContext';
 
 const theme = createTheme();
 
-export default function LogIn({token, setToken, loggedIn, setLoggedIn}) {
+export default function LogIn() {
 
   const [userName, setUsername] = useState("")
   const [passWord, setPassword] = useState("")
+  const { token, setToken } = useContext(TokenContext)
+
+  const navigate = useNavigate();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -40,21 +44,21 @@ export default function LogIn({token, setToken, loggedIn, setLoggedIn}) {
       if (response.status == 200) {
           console.log("Login Successful")
 
-          const data = await response.json()
-          console.log(data.token)
+          const data = await response.json();
+          console.log(data.token);
           setToken(data.token)
-          setLoggedIn(true)
-          window.location = '/'
+          navigate('/')
       } else {
-          console.log("User created!")
+          console.log("Login Failed")
       }
   }
 
   return (
+  
     <ThemeProvider theme={theme}>
+      {token}
       <Container component="main" maxWidth="xs">
         <CssBaseline />
-        {loggedIn}
         <Box
           sx={{
             marginTop: 8,
@@ -112,6 +116,6 @@ export default function LogIn({token, setToken, loggedIn, setLoggedIn}) {
             </Grid>
           </Box>
         </Box>
-      </Container>
+    </Container>
     </ThemeProvider>
   )};

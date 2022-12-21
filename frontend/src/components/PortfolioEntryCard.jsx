@@ -31,7 +31,7 @@ const bull = (
 export default function PortfolioEntryCard({ entry }) {
 
     return (
-        <Card sx={{ width: '100%' }}>
+        <Card sx={{ width: '100%', backgroundColor: 'whitesmoke', border: 2 }}>
         <CardContent sx={{ display: 'flex', flexDirection: 'column'}}>
             <Typography variant="h5" component="div">
             Ticker: {entry["ticker"]}

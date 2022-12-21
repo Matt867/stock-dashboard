@@ -17,12 +17,50 @@ use Illuminate\Support\Facades\Http;
 
 const API_KEY = "cedgceiad3i8tooa17b0cedgceiad3i8tooa17bg";
 
+// Accepts API calls and utilizes caching with 3 minute expiration times to deliver fast responses.
+function api_call($url) {
+    
+    // Query the cache, and search for a non-expired entry in the cache (<3mins)
+    $results = DB::select('SELECT id, response, expiration FROM cache WHERE request=?', array($url));
+
+    for($i=0; $i < count($results); $i++) {
+        $entry = (array)$results[$i];
+        if (date('Y-m-d H:i:s') < $entry["expiration"]) {
+
+            // Up to date entry exists, return the cached response.
+            return $entry["response"];
+    
+        }
+
+        // Keep cache speedy and prevent it from getting too large by deleting rows that are expired as soon as we spot them
+        else {
+            DB::delete('DELETE FROM cache WHERE id=?', array($entry["id"]));
+        }
+    }
+
+    // If we reach here, we don't have a current entry in the cache. Go out to the API for the response, cache it and return it.
+    $api_response = Http::acceptJson()
+    ->withHeaders(['X-Finnhub-Token' => API_KEY])
+    ->get($url);
+
+    // Calculate expiry time, cache the received response
+    $date = date('Y-m-d H:i:s');
+    $currentDate = strtotime($date);
+    $futureDate = $currentDate+(180);
+    $formatDate = date("Y-m-d H:i:s", $futureDate); 
+    
+    DB::insert('INSERT INTO cache (request, response, expiration) VALUES (?, ?, ?)', array($url, $api_response, $formatDate));
+
+    return $api_response;
+}
+
 // Check that a token is valid, return associated user
 function checkToken($token) {
-    // prepared statement to query db for username password and id of username with specified username
+
+    // Query userid using token
     $results = DB::select('SELECT userid FROM tokens WHERE token=?', array($token));
 
-    // guard clause to throw exception if user does not exist
+    // Invalid token
     if (count($results) < 1) {
         abort(403, "Invalid token");
     }
@@ -44,11 +82,9 @@ function generateToken() {
 
 // Check if a ticker is valid
 function validTicker($ticker) {
-    $response = Http::acceptJson()
-    ->withHeaders(['X-Finnhub-Token' => API_KEY])
-    ->get('http://finnhub.io/api/v1/quote?symbol='.$ticker);
+    $response = api_call('http://finnhub.io/api/v1/quote?symbol='.$ticker);
 
-    $json = $response->json();
+    $json = json_decode($response, true);
 
     if ($json['c'] == null) {
         return false;
@@ -63,22 +99,18 @@ function getPrice($ticker) {
         return false;
     }
 
-    $response = Http::acceptJson()
-    ->withHeaders(['X-Finnhub-Token' => API_KEY])
-    ->get('http://finnhub.io/api/v1/quote?symbol='.$ticker);
+    $response = api_call('http://finnhub.io/api/v1/quote?symbol='.$ticker);
 
-    $json = $response->json();
+    $json = json_decode($response, true);
 
     return $json['c'];
 }
 
 Route::get('/getPrice/{ticker}', function ($ticker) {
-    $response = Http::acceptJson()
-        ->withHeaders(['X-Finnhub-Token' => API_KEY])
-        ->get('http://finnhub.io/api/v1/quote?symbol='.$ticker);
-    $json = $response->json();
-    return ['price' => $json['c'], 'percentchange' => $json['dp']];
-    // todo check docs, return the whole object and rename keys
+    $ticker = strtoupper($ticker);
+    $response = api_call('http://finnhub.io/api/v1/quote?symbol='.$ticker);
+    $json = json_decode($response, true);
+    return ['ticker' => $ticker, 'price' => $json['c'], 'percentchange' => $json['dp']];
 });
 
 Route::post('/signup', function (Request $request) {
@@ -127,7 +159,7 @@ Route::post('/login', function (Request $request) {
 
         // check given password matches db password
         if ($data['password'] !== $result['password']) {
-            abort(403);
+            abort(403, "Incorrect password");
         }
 
         // Generate new token
@@ -143,9 +175,7 @@ Route::post('/login', function (Request $request) {
     }
 });
 
-// Get top N stocks. Note: This route is kind of slow, I think it could use some caching. Maybe create a cache, either through the DB or in an array, check if the entries are
-// more than 5(?) minutes old and if they are too old, only then make external calls to the API and then update the cache with new API response and timestamp. This way, we only call the API every 5 minutes in the worst case.
-// ^ Would probably fix the erratic behaviour on the homepage of the frontend.
+// Get top N stocks.
 Route::post('/gettopstocks', function (Request $request) {
     $data = $request->json()->all();
 
@@ -180,12 +210,12 @@ Route::post('/gettopstocks', function (Request $request) {
 
     // Missing count in request body
     if (!isset($data["count"])) {
-        throw new Exception("Count not sent.");
+        abort(400, "Count not sent");
     }
 
     // Over 25 not currently supported
     if (intval($data["count"] > 25)) {
-        throw new Exception("Over top 25 is currently not supported.");
+        abort(400, "Over 25 is currently not supported");
     }
 
 
@@ -193,11 +223,9 @@ Route::post('/gettopstocks', function (Request $request) {
 
     // Get prices for top N stocks from API and append result to response array
     for ($i = 0; $i < intval($data["count"]); $i++) {
-        $response = Http::acceptJson()
-        ->withHeaders(['X-Finnhub-Token' => API_KEY])
-        ->get('http://finnhub.io/api/v1/quote?symbol='.$top25[$i]);
+        $response = api_call('http://finnhub.io/api/v1/quote?symbol='.$top25[$i]);
 
-        $json = $response->json();
+        $json = json_decode($response, true);
 
         $responseObject[] = array('ticker' => $top25[$i], 'price' => $json['c'], 'percentchange' => $json['dp']);
 
@@ -211,6 +239,18 @@ Route::post('/gettopstocks', function (Request $request) {
 // Given a ticker and a quantity, buy stocks and update a user's portfolio
 Route::post('/buy', function (Request $request) {
     $request_data = $request->json()->all();
+
+    if (!isset($request_data["token"])) {
+        abort(400, "A token is required");
+    }
+
+    if (!isset($request_data["ticker"])) {
+        abort(400, "A ticker is required");
+    }
+
+    if (!isset($request_data["quantity"])) {
+        abort(400, "A quantity is required");
+    }
 
     // Check token, get current user ID
     $curr_user_id = checkToken($request_data["token"]);
@@ -241,6 +281,18 @@ Route::post('/buy', function (Request $request) {
 Route::post('/sell', function (Request $request) {
     $request_data = $request->json()->all();
 
+    if (!isset($request_data["token"])) {
+        abort(400, "A token is required");
+    }
+
+    if (!isset($request_data["ticker"])) {
+        abort(400, "A ticker is required");
+    }
+
+    if (!isset($request_data["quantity"])) {
+        abort(400, "A quantity is required");
+    }
+
     // Check token, get current user ID
     $curr_user_id = checkToken($request_data["token"]);
 
@@ -251,9 +303,12 @@ Route::post('/sell', function (Request $request) {
 
     // Check that the user has enough stocks to sell (that the sell is valid)
     $queryresult = DB::select('SELECT quantity FROM portfolios WHERE userid=? AND ticker=?', array($curr_user_id, $request_data["ticker"]));
+    if (count($queryresult) < 1) {
+            abort(400, "Invalid sell - attempting to sell more than user holds");
+        }
     $owned_quantity = (array)$queryresult[0];
     if ($owned_quantity["quantity"] < $request_data["quantity"]) {
-        abort(400);
+        abort(400, "Invalid sell - attempting to sell more than user holds");
     }
 
     // Add order to sells table
@@ -269,9 +324,13 @@ Route::post('/sell', function (Request $request) {
     }
 });
 
-// Get current username with a token todo
+// Get current username with a token
 Route::post('/user', function (Request $request) {
     $request_data = $request->json()->all();
+
+    if (!isset($request_data["token"])) {
+        abort(400, "A token is required");
+    }
 
     // Check token, get current user ID
     $curr_user_id = checkToken($request_data["token"]);
@@ -295,6 +354,29 @@ Route::post('/portfolio', function (Request $request) {
     // Get and return their portfolio
     $queryresult = DB::select('SELECT ticker, quantity FROM portfolios WHERE userid=?', array($curr_user_id));
     return $queryresult;
+});
+
+Route::post('/portfolio/chart', function (Request $request) {
+    $tickerOrder = array();
+    $valueHeld = array();
+    
+    $request_data = $request->json()->all();
+
+    $curr_user_id = checkToken($request_data["token"]);
+
+    $queryresult = DB::select('SELECT ticker, quantity FROM portfolios WHERE userid=?', array($curr_user_id));
+
+    $value = 0;
+
+    for($i=0; $i < count($queryresult); $i++) {
+        $stock = (array)$queryresult[$i];
+        $current_price_of_stock = getPrice($stock["ticker"]);
+        $total_value_held = $current_price_of_stock * $stock["quantity"];
+        $tickerOrder[] = $stock["ticker"];
+        $valueHeld[] = $total_value_held;
+    }
+
+    return array($tickerOrder, $valueHeld);
 });
 
 Route::post('/portfolio/value', function (Request $request) {
@@ -346,19 +428,15 @@ Route::get('/search/{ticker}', function ($ticker, Request $request) {
     $ticker = strtoupper($ticker);
 
     if (!validTicker($ticker)) {
-        abort(400);
+        abort(400, "Invalid ticker");
     }
 
-    $response = Http::acceptJson()
-        ->withHeaders(['X-Finnhub-Token' => API_KEY])
-        ->get('http://finnhub.io/api/v1/quote?symbol='.$ticker);    
-    $json = $response->json();
+    $response = api_call('http://finnhub.io/api/v1/quote?symbol='.$ticker);    
+    $json = json_decode($response, true);
     
     // Add company name to response, then send response
-    $response2 = Http::acceptJson()
-        ->withHeaders(['X-Finnhub-Token' => API_KEY])
-        ->get('http://finnhub.io/api/v1/search?q='.$ticker);    
-    $json2 = $response2->json();
+    $response2 = api_call('http://finnhub.io/api/v1/search?q='.$ticker);    
+    $json2 = json_decode($response2, true);
     $company_name = $json2["result"][0]["description"];
     
     $json["companyName"] = $company_name;
@@ -367,5 +445,5 @@ Route::get('/search/{ticker}', function ($ticker, Request $request) {
 });
 
 Route::get('/', function (Request $request) {
-    return var_dump($request->session());
+    return "Backend for stock dashboard";
 });

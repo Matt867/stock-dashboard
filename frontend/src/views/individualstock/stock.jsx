@@ -63,7 +63,7 @@ export default function Stock({token, setToken, loggedIn, setLoggedIn}) {
                                 ${current}
                             </Typography>
                             <Typography variant="h5" component="div">
-                                ${open}
+                                Today's open: ${open}
                             </Typography>
                             <Typography variant="h5" component="div">
                                 Today's high: ${high}

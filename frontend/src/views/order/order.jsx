@@ -12,16 +12,19 @@ import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { useState } from 'react';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import BuySellSwitch from '../../components/buysellswitch';
 import TopBar from "../../components/TopBar";
+import { TokenContext } from '../../context/TokenContext';
 const theme = createTheme();
 
-export default function Order({token, setToken, loggedIn, setLoggedIn}) {
+export default function Order() {
 
   const [ticker, setTicker] = useState("")
   const [quantity, setQuantity] = useState("")
   const [checked, setChecked] = useState(false)
+  const navigate = useNavigate()
+  const { token, setToken } = React.useContext(TokenContext)
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -38,11 +41,11 @@ export default function Order({token, setToken, loggedIn, setLoggedIn}) {
               body: JSON.stringify({
                   ticker: ticker,
                   quantity: quantity,
-                  token: "99d5df736a9f577fcf7b90e0e8df1a0b",
+                  token: token,
               })
       })
     
-    window.location.href = "/"
+    navigate('/')
 
   }
 

@@ -29,9 +29,9 @@ const bull = (
 
 
 export default function OrderHistoryCard({ order }) {
-
+    // order['type'] == 'SELL' ? red[600] : green[600]
     return (
-        <Card sx={{ width: '100%' }}>
+        <Card sx={{ width: '100%', backgroundColor: 'whitesmoke', border: 2, borderColor: order['type'] == 'SELL' ? red[600] : green[600] }}>
         <CardContent sx={{ display: 'flex', flexDirection: 'column'}}>
             <Typography sx={{fontWeight: 'bold'}} variant="h5" component="div" style={{color: order['type'] == 'SELL' ? red[600] : green[600]}}>
             {order['type']}
@@ -40,7 +40,7 @@ export default function OrderHistoryCard({ order }) {
             Ticker: {order["ticker"]}
             </Typography>
             <Typography sx={{fontWeight: 'bold'}} variant="h5" component="div">
-            Quantity {order["quantity"]}
+            Quantity: {order["quantity"]}
             </Typography>
             <Typography sx={{fontStyle: 'oblique'}} variant="h5" component="div">
             {order["ordertime"]}

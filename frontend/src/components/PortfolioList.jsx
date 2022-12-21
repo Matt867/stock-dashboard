@@ -34,7 +34,7 @@ export default function PortfolioList({portfolio}) {
 
     return (
         <Container style={{width: '520'}}>
-            <Typography sx={{fontWeight: 'bold'}} variant="h4" component="div" align='center'>
+            <Typography sx={{fontWeight: 'bold', paddingLeft:"15px"}} variant="h4" component="div" align='left'>
                 My Portfolio
             </Typography>
         <List sx={style} component="nav" aria-label="order history">
