@@ -17,12 +17,53 @@ use Illuminate\Support\Facades\Http;
 
 const API_KEY = "cedgceiad3i8tooa17b0cedgceiad3i8tooa17bg";
 
+// Accepts API calls and utilizes caching with 3 minute expiration times to deliver fast responses.
+function api_call($url) {
+
+    // Assume not in cache initially, this boolean gets updated later if both of the cache checks pass (presence/timestamp)
+    $current_entry_exists = false;
+
+    $results = DB::select('SELECT id, response, expiration FROM cache WHERE request=?', array($url));
+
+    // Look for a current entry in the cache (<5min)
+    for($i=0; $i < count($results); $i++) {
+        $entry = (array)$results[$i];
+        if (date('Y-m-d H:i:s') < $entry["expiration"]) {
+
+            // Up to date entry exists, return the cached response.
+            return $entry["response"];
+
+        }
+
+        // Keep cache speedy and prevent it from getting too large by deleting rows that are expired as soon as we spot them
+        else {
+            DB::delete('DELETE FROM cache WHERE id=?', array($entry["id"]));
+        }
+    }
+
+    // If we reach here, we don't have a current entry in the cache. Go out to the API for the response, cache it and return it.
+    $api_response = Http::acceptJson()
+    ->withHeaders(['X-Finnhub-Token' => API_KEY])
+    ->get($url);
+
+    // Calculate expiry time, cache the received response
+    $date = date('Y-m-d H:i:s');
+    $currentDate = strtotime($date);
+    $futureDate = $currentDate+(180);
+    $formatDate = date("Y-m-d H:i:s", $futureDate); 
+    
+    DB::insert('INSERT INTO cache (request, response, expiration) VALUES (?, ?, ?)', array($url, $api_response, $formatDate));
+
+    return $api_response;
+}
+
 // Check that a token is valid, return associated user
 function checkToken($token) {
-    // prepared statement to query db for username password and id of username with specified username
+
+    // Query userid using token
     $results = DB::select('SELECT userid FROM tokens WHERE token=?', array($token));
 
-    // guard clause to throw exception if user does not exist
+    // Invalid token
     if (count($results) < 1) {
         abort(403, "Invalid token");
     }
@@ -44,11 +85,9 @@ function generateToken() {
 
 // Check if a ticker is valid
 function validTicker($ticker) {
-    $response = Http::acceptJson()
-    ->withHeaders(['X-Finnhub-Token' => API_KEY])
-    ->get('http://finnhub.io/api/v1/quote?symbol='.$ticker);
+    $response = api_call('http://finnhub.io/api/v1/quote?symbol='.$ticker);
 
-    $json = $response->json();
+    $json = json_decode($response, true);
 
     if ($json['c'] == null) {
         return false;
@@ -63,20 +102,16 @@ function getPrice($ticker) {
         return false;
     }
 
-    $response = Http::acceptJson()
-    ->withHeaders(['X-Finnhub-Token' => API_KEY])
-    ->get('http://finnhub.io/api/v1/quote?symbol='.$ticker);
+    $response = api_call('http://finnhub.io/api/v1/quote?symbol='.$ticker);
 
-    $json = $response->json();
+    $json = json_decode($response, true);
 
     return $json['c'];
 }
 
 Route::get('/getPrice/{ticker}', function ($ticker) {
-    $response = Http::acceptJson()
-        ->withHeaders(['X-Finnhub-Token' => API_KEY])
-        ->get('http://finnhub.io/api/v1/quote?symbol='.$ticker);
-    $json = $response->json();
+    $response = api_call('http://finnhub.io/api/v1/quote?symbol='.$ticker);
+    $json = json_decode($response, true);
     return ['price' => $json['c'], 'percentchange' => $json['dp']];
     // todo check docs, return the whole object and rename keys
 });
@@ -193,11 +228,9 @@ Route::post('/gettopstocks', function (Request $request) {
 
     // Get prices for top N stocks from API and append result to response array
     for ($i = 0; $i < intval($data["count"]); $i++) {
-        $response = Http::acceptJson()
-        ->withHeaders(['X-Finnhub-Token' => API_KEY])
-        ->get('http://finnhub.io/api/v1/quote?symbol='.$top25[$i]);
+        $response = api_call('http://finnhub.io/api/v1/quote?symbol='.$top25[$i]);
 
-        $json = $response->json();
+        $json = json_decode($response, true);
 
         $responseObject[] = array('ticker' => $top25[$i], 'price' => $json['c'], 'percentchange' => $json['dp']);
 
@@ -349,16 +382,12 @@ Route::get('/search/{ticker}', function ($ticker, Request $request) {
         abort(400);
     }
 
-    $response = Http::acceptJson()
-        ->withHeaders(['X-Finnhub-Token' => API_KEY])
-        ->get('http://finnhub.io/api/v1/quote?symbol='.$ticker);    
-    $json = $response->json();
+    $response = api_call('http://finnhub.io/api/v1/quote?symbol='.$ticker);    
+    $json = json_decode($response, true);
     
     // Add company name to response, then send response
-    $response2 = Http::acceptJson()
-        ->withHeaders(['X-Finnhub-Token' => API_KEY])
-        ->get('http://finnhub.io/api/v1/search?q='.$ticker);    
-    $json2 = $response2->json();
+    $response2 = api_call('http://finnhub.io/api/v1/search?q='.$ticker);    
+    $json2 = json_decode($response2, true);
     $company_name = $json2["result"][0]["description"];
     
     $json["companyName"] = $company_name;
@@ -367,5 +396,5 @@ Route::get('/search/{ticker}', function ($ticker, Request $request) {
 });
 
 Route::get('/', function (Request $request) {
-    return var_dump($request->session());
+    return validTicker("TSLA");
 });
