@@ -1,3 +1,1 @@
-BASIC
-dwadawdadwadawd
-kjfnew
+This is a stock trading platform web application.
